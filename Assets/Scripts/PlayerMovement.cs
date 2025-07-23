@@ -6,17 +6,23 @@ public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    public float stopThreshold = 0.1f; // Минимальный input для движения
-    public float drag = 5f; // Торможение
+    public float acceleration = 10f;      // Насколько быстро игрок ускоряется
+    public float drag = 5f;               // Торможение
 
     [Header("Look Settings")]
     public Transform cameraRoot;
     public float mouseSensitivity = 2f;
     public float maxVerticalAngle = 80f;
 
+    [Header("Tilt Settings")]
+    public Transform visualRoot;
+    public float tiltIntensity = 10f;     // Насколько сильно тело наклоняется
+    public float tiltSpeed = 5f;          // Насколько быстро меняется наклон
+
     private Rigidbody rb;
     private Camera playerCamera;
     private Vector2 moveInput;
+    private Vector3 currentVelocity = Vector3.zero;
     private float verticalLookRotation = 0f;
 
     void Start()
@@ -46,6 +52,7 @@ public class PlayerMovement : NetworkBehaviour
         );
 
         HandleLook();
+        HandleTilt(); // Наклоны тела
     }
 
     void FixedUpdate()
@@ -57,27 +64,24 @@ public class PlayerMovement : NetworkBehaviour
 
     void HandleMovement()
     {
-        // Нет ввода — сбрасываем движение по XZ
-        if (moveInput.sqrMagnitude < stopThreshold * stopThreshold)
-        {
-            rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
-            return;
-        }
-
-        // Направление движения — относительно камеры
         Vector3 camForward = playerCamera.transform.forward;
         Vector3 camRight = playerCamera.transform.right;
 
-        // Убираем вертикальную составляющую
         camForward.y = 0f;
         camRight.y = 0f;
         camForward.Normalize();
         camRight.Normalize();
 
-        Vector3 moveDir = (camForward * moveInput.y + camRight * moveInput.x).normalized;
+        Vector3 targetDir = (camForward * moveInput.y + camRight * moveInput.x).normalized;
 
-        // Применяем velocity
-        rb.linearVelocity = new Vector3(moveDir.x * moveSpeed, rb.linearVelocity.y, moveDir.z * moveSpeed);
+        // Целевая скорость
+        Vector3 targetVelocity = targetDir * moveSpeed;
+
+        // Плавное приближение к нужной скорости
+        currentVelocity = Vector3.Lerp(currentVelocity, targetVelocity, Time.fixedDeltaTime * acceleration);
+
+        // Применяем к Rigidbody
+        rb.linearVelocity = new Vector3(currentVelocity.x, rb.linearVelocity.y, currentVelocity.z);
     }
 
     void HandleLook()
@@ -85,12 +89,20 @@ public class PlayerMovement : NetworkBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        // Поворот тела по горизонтали
         transform.Rotate(Vector3.up * mouseX);
 
-        // Поворот головы по вертикали
         verticalLookRotation -= mouseY;
         verticalLookRotation = Mathf.Clamp(verticalLookRotation, -maxVerticalAngle, maxVerticalAngle);
         cameraRoot.localRotation = Quaternion.Euler(verticalLookRotation, 0f, 0f);
+    }
+
+    void HandleTilt()
+    {
+        // Простой угол наклона по Z и X
+        float targetTiltZ = -moveInput.x * tiltIntensity; // наклон вбок
+        float targetTiltX = moveInput.y * tiltIntensity;  // наклон вперёд/назад
+
+        Quaternion targetTilt = Quaternion.Euler(targetTiltX, 0f, targetTiltZ);
+        visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, targetTilt, Time.deltaTime * tiltSpeed);
     }
 }
