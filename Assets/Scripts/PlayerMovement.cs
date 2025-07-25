@@ -90,7 +90,7 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 moveDir = (camForward * moveInput.y + camRight * moveInput.x).normalized;
 
         // Обновляем velocity
-        Vector3 velocity = new Vector3(moveDir.x * moveSpeed, rb.velocity.y, moveDir.z * moveSpeed);
-        rb.velocity = velocity;
+        Vector3 velocity = new Vector3(moveDir.x * moveSpeed, rb.linearVelocity.y, moveDir.z * moveSpeed);
+        rb.linearVelocity = velocity;
     }
 }
