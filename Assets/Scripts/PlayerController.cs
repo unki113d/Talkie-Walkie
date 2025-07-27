@@ -90,7 +90,7 @@ public class PlayerController : NetworkBehaviour
         /*_camera.localRotation = Quaternion.Euler(_xRotation, 0, 0);
         transform.Rotate(Vector3.up, Mouse_X * _mouseSensitivity * Time.deltaTime);*/
         _camera.localRotation = Quaternion.Euler(_xRotation, 0, 0);
-        transform.Rotate(Vector3.up, Mouse_X * _mouseSensitivity);
+        transform.Rotate(Vector3.up, Mouse_X * Time.deltaTime * _mouseSensitivity);
 
         Debug.Log($"Mouse X: {_inputManager.Look.x}, Mouse Y: {_inputManager.Look.y}");
         Debug.Log($"X Rotation: {_xRotation}");
