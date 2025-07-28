@@ -24,10 +24,16 @@ public class PlayerController : NetworkBehaviour
     private int _velocityYHash;
 
     private float _xRotation;
+    private float _yRotation; // накопление для поворота по горизонтали
 
     [Header("Player Settings")]
     [SerializeField] private float _walkSpeed;
     [SerializeField] private float _runSpeed;
+
+    [Header("Dynamic turn")]
+    [SerializeField] private float _maxHeadAngle = 60f;
+    private float _headYawOffset;
+    private float _bodyYaw;
 
     private Vector2 _currentVelocity;
 
@@ -86,11 +92,14 @@ public class PlayerController : NetworkBehaviour
 
         _xRotation -= Mouse_Y * _mouseSensitivity * Time.deltaTime;
         _xRotation = Mathf.Clamp(_xRotation, _upperLimit, _bottomLimit);
-
-        /*_camera.localRotation = Quaternion.Euler(_xRotation, 0, 0);
-        transform.Rotate(Vector3.up, Mouse_X * _mouseSensitivity * Time.deltaTime);*/
         _camera.localRotation = Quaternion.Euler(_xRotation, 0, 0);
-        transform.Rotate(Vector3.up, Mouse_X * Time.deltaTime * _mouseSensitivity);
+
+        _headYawOffset += Mouse_X * _mouseSensitivity * Time.deltaTime;
+        _headYawOffset = Mathf.Clamp(_headYawOffset, -_maxHeadAngle, _maxHeadAngle);
+        
+        _yRotation += Mouse_X * _mouseSensitivity * Time.deltaTime;
+
+        transform.rotation = Quaternion.Euler(0, _yRotation, 0);
 
         Debug.Log($"Mouse X: {_inputManager.Look.x}, Mouse Y: {_inputManager.Look.y}");
         Debug.Log($"X Rotation: {_xRotation}");

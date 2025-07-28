@@ -526,13 +526,13 @@ ModelImporter:
         length: 0
         modified: 0
     skeleton:
-    - name: Y Bot@T-Pose(Clone)
+    - name: T-POSE(Clone)
       parentName: 
       position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: mixamorig:Hips
-      parentName: Y Bot@T-Pose(Clone)
+      parentName: T-POSE(Clone)
       position: {x: 0.00000033015945, y: 0.99791867, z: 0.00000051621345}
       rotation: {x: 7.537291e-11, y: 0.0000017531268, z: -0.000043883512, w: 1}
       scale: {x: 1, y: 1, z: 1}
