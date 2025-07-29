@@ -8,6 +8,7 @@ public class InputManager : MonoBehaviour
     public Vector2 Move {get; private set;}
     public Vector2 Look {get; private set;}
     public bool Run {get; private set;}
+    public bool Jump { get; private set; }
 
     // Action Map
     private InputActionMap _currentMap;
@@ -15,6 +16,7 @@ public class InputManager : MonoBehaviour
     private InputAction _moveAction;
     private InputAction _lookAction;
     private InputAction _runAction;
+    private InputAction _jumpAction;
 
     private void Awake()
     {
@@ -23,11 +25,14 @@ public class InputManager : MonoBehaviour
         _moveAction = _currentMap.FindAction("Move");
         _lookAction = _currentMap.FindAction("Look");
         _runAction = _currentMap.FindAction("Sprint");
+        _jumpAction = _currentMap.FindAction("Jump");
 
         _moveAction.performed += onMove;
         _lookAction.performed += onLook;
         _runAction.performed += onRun;
+        _jumpAction.performed += OnJump;
 
+        _jumpAction.canceled += OnJump;
         _moveAction.canceled += onMove;
         _lookAction.canceled += onLook;
         _runAction.canceled += onRun;
@@ -57,6 +62,10 @@ public class InputManager : MonoBehaviour
     private void onRun(InputAction.CallbackContext context)
     {
         Run = context.ReadValueAsButton();
+    }
+    private void OnJump(InputAction.CallbackContext context)
+    {
+        Jump = context.ReadValueAsButton();
     }
 
     private void OnEnable()

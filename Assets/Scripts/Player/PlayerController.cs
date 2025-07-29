@@ -26,6 +26,10 @@ public class PlayerController : NetworkBehaviour
     private float _xRotation;
     private float _yRotation; // накопление дл€ поворота по горизонтали
 
+    private float targetSpeed = 0f;
+    private float dx = 0f;
+    private float dz = 0f;
+
     [Header("Player Settings")]
     [SerializeField] private float _walkSpeed;
     [SerializeField] private float _runSpeed;
@@ -67,16 +71,24 @@ public class PlayerController : NetworkBehaviour
     {
         if (!_hasAnimator) return;
 
-        float targetSpeed = _inputManager.Run ? _runSpeed : _walkSpeed;
+        targetSpeed = _inputManager.Run ? _runSpeed : _walkSpeed;
         if (_inputManager.Move == Vector2.zero) targetSpeed = 0.1f;
 
         _currentVelocity.x = Mathf.Lerp(_currentVelocity.x, _inputManager.Move.x * targetSpeed, _animationBlendSpeed * Time.fixedDeltaTime);
         _currentVelocity.y = Mathf.Lerp(_currentVelocity.y, _inputManager.Move.y * targetSpeed, _animationBlendSpeed * Time.fixedDeltaTime);
 
-        var VelocityXDifference = _currentVelocity.x - _rb.linearVelocity.x;
-        var VelocityZDifference = _currentVelocity.y - _rb.linearVelocity.z;
+        // 1. ѕолучаем мировую скорость и переводим еЄ в локальные оси
+        Vector3 worldVel = _rb.linearVelocity;
+        Vector3 localVel = transform.InverseTransformDirection(worldVel);
 
-        _rb.AddForce(transform.TransformVector(new Vector3(VelocityXDifference, 0, VelocityZDifference)), ForceMode.VelocityChange);
+        // 2. —читаем разницу в локальных координатах
+        dx = _currentVelocity.x - localVel.x;
+        dz = _currentVelocity.y - localVel.z;
+        Vector3 localDelta = new Vector3(dx, 0f, dz);
+
+        // 3. ѕреобразуем обратно в мировой базис и пушим
+        Vector3 worldDelta = transform.TransformDirection(localDelta);
+        _rb.AddForce(worldDelta, ForceMode.VelocityChange);
 
         _animator.SetFloat(_velocityXHash, _currentVelocity.x);
         _animator.SetFloat(_velocityYHash, _currentVelocity.y);
