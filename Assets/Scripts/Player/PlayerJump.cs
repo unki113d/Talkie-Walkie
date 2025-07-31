@@ -21,6 +21,7 @@ public class PlayerJump : NetworkBehaviour
     private Animator _animator;
     public bool _isGrounded;
     public bool _jumpRequested;
+    private bool _hasLeftGround = false;
 
     private int _jumpHash;
     private int _inAirHash;
@@ -68,13 +69,18 @@ public class PlayerJump : NetworkBehaviour
 
         // InAir 
         if (!_isGrounded && _rb.linearVelocity.y < 0f)
+        {
+
             _animator.SetBool(_inAirHash, true);
+            _hasLeftGround = true;
+        }
 
         // Land
-        if (_isGrounded && _animator.GetBool(_inAirHash))
+        if (_isGrounded && _animator.GetBool(_inAirHash) && _hasLeftGround)
         {
             _animator.SetBool(_inAirHash, false);
             _animator.SetTrigger(_landHash);
+            _hasLeftGround = false;
         }
     }
 
