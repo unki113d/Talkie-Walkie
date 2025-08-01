@@ -14,13 +14,15 @@ public class PlayerJump : NetworkBehaviour
     [SerializeField, Range(0f, 90f)] private float maxSlopeAngle = 60f;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
+
+    [Header("Foot Trigger")]
+    [SerializeField] private Collider _footTrigger;
 
     private InputManager _inputManager;
     private Rigidbody _rb;
     private Animator _animator;
-    public bool _isGrounded;
-    public bool _jumpRequested;
+    public bool _isGrounded { get; private set; }
+    private bool _jumpRequested;
     private bool _hasLeftGround = false;
 
     private int _jumpHash;
@@ -29,6 +31,9 @@ public class PlayerJump : NetworkBehaviour
 
     void Start()
     {
+        if (!isLocalPlayer)
+        { enabled = false; return; }
+
         _inputManager = GetComponent<InputManager>();
         _rb = GetComponent<Rigidbody>();
         _animator = GetComponent<Animator>();
@@ -36,18 +41,13 @@ public class PlayerJump : NetworkBehaviour
         _inAirHash = Animator.StringToHash("InAir");
         _landHash = Animator.StringToHash("Land");
 
-        if (!isLocalPlayer)
-        {
-            enabled = false;
-            return;
-        }
+        _isGrounded = CheckGrounded();
+        _animator.SetBool(_inAirHash, false);
+        _hasLeftGround = false;
     }
 
     void Update()
     {
-        if (!isLocalPlayer) return;
-
-
         if (_inputManager.Jump && _isGrounded)
         {
             _jumpRequested = true;
@@ -74,14 +74,6 @@ public class PlayerJump : NetworkBehaviour
             _animator.SetBool(_inAirHash, true);
             _hasLeftGround = true;
         }
-
-        // Land
-        if (_isGrounded && _animator.GetBool(_inAirHash) && _hasLeftGround)
-        {
-            _animator.SetBool(_inAirHash, false);
-            _animator.SetTrigger(_landHash);
-            _hasLeftGround = false;
-        }
     }
 
     private bool CheckGrounded()
@@ -105,7 +97,14 @@ public class PlayerJump : NetworkBehaviour
         float slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
         return slopeAngle <= maxSlopeAngle;
     }
+    private void OnTriggerEnter(Collider other)
+    {
 
+        // тут самый момент приземления
+        _animator.SetBool(_inAirHash, false);
+        _animator.SetTrigger(_landHash);
+        _hasLeftGround = false;
+    }
     private void OnDrawGizmosSelected()
     {
         if (groundCheck == null) return;
@@ -120,3 +119,4 @@ public class PlayerJump : NetworkBehaviour
     }
 
 }
+
