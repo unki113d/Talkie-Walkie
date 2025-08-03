@@ -6,8 +6,21 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/Steam host lobby.unity
+    guid: 6c072b36a7062c1499d699edba3304a4
+  - enabled: 1
+    path: Assets/Scenes/Kirill Testing Laboratory.unity
+    guid: 2e93f8e8010df89488d53fee52b06ca3
+  - enabled: 1
     path: Assets/Scenes/Testing Laboratory.unity
     guid: 4c628c54c1b989847960c1ba39dd1355
+  - enabled: 1
+    path: Assets/Dissonance/Integrations/MirrorIgnorance/Demo/MirrorIgnorance Demo.unity
+    guid: bb07781d277bdb4419ed472505c89305
+  - enabled: 1
+    path: Assets/Dissonance/Integrations/MirrorIgnorance/Demo/MirrorIgnorance Game
+      World.unity
+    guid: 7050b0d6c739022479fe143101b36e4b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   m_UseUCBPForAssetBundles: 0
