@@ -14,6 +14,7 @@ public class PlayerJump : NetworkBehaviour
     [SerializeField, Range(0f, 90f)] private float maxSlopeAngle = 60f;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundRadius = 0.2f;
+    [SerializeField] private LayerMask groundLayer;
 
     [Header("Foot Trigger")]
     [SerializeField] private Collider _footTrigger;
@@ -21,29 +22,38 @@ public class PlayerJump : NetworkBehaviour
     private InputManager _inputManager;
     private Rigidbody _rb;
     private Animator _animator;
-    public bool _isGrounded { get; private set; }
+    public bool _isGrounded;
     private bool _jumpRequested;
-    private bool _hasLeftGround = false;
+    public bool _hasLeftGround = false;
 
     private int _jumpHash;
     private int _inAirHash;
     private int _landHash;
+    void Awake()
+    {
+        // инициализируем хэши до любых вызовов SetBool/SetTrigger
+        _jumpHash = Animator.StringToHash("JumpStart");
+        _inAirHash = Animator.StringToHash("InAir");
+        _landHash = Animator.StringToHash("Land");
+    }
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+
+        _inputManager = GetComponent<InputManager>();
+        _rb = GetComponent<Rigidbody>();
+        _animator = GetComponent<Animator>();
+
+        _isGrounded = CheckGrounded();
+        _animator.SetBool(_inAirHash, false);
+        _hasLeftGround = false;
+        _jumpRequested = false;
+    }
 
     void Start()
     {
         if (!isLocalPlayer)
         { enabled = false; return; }
-
-        _inputManager = GetComponent<InputManager>();
-        _rb = GetComponent<Rigidbody>();
-        _animator = GetComponent<Animator>();
-        _jumpHash = Animator.StringToHash("JumpStart");
-        _inAirHash = Animator.StringToHash("InAir");
-        _landHash = Animator.StringToHash("Land");
-
-        _isGrounded = CheckGrounded();
-        _animator.SetBool(_inAirHash, false);
-        _hasLeftGround = false;
     }
 
     void Update()
@@ -60,7 +70,7 @@ public class PlayerJump : NetworkBehaviour
         _isGrounded = CheckGrounded();
 
         // Jump
-        if (_jumpRequested)
+        if (_jumpRequested && _isGrounded)
         {
             _rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
             _animator.SetTrigger(_jumpHash);
@@ -78,24 +88,26 @@ public class PlayerJump : NetworkBehaviour
 
     private bool CheckGrounded()
     {
+        // Позиция от которой начинаем сферокаст чуть выше ноги
         Vector3 origin = groundCheck.position + Vector3.up * 0.05f;
-        RaycastHit hit;
-
         float maxDist = groundRadius + 0.1f;
-        bool hasHit = Physics.Raycast(
+
+        // Бросаем сферокаст только по слоям groundLayer
+        if (Physics.SphereCast(
             origin,
+            groundRadius,
             Vector3.down,
-            out hit,
+            out RaycastHit hit,
             maxDist,
-            ~0,  // layerMask = ~0 (All layers)
-            QueryTriggerInteraction.Ignore
-        );
+            groundLayer,
+            QueryTriggerInteraction.Ignore))
+        {
+            // Проверяем угол наклона
+            float angle = Vector3.Angle(hit.normal, Vector3.up);
+            return angle <= maxSlopeAngle;
+        }
 
-        if (!hasHit)
-            return false;
-
-        float slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
-        return slopeAngle <= maxSlopeAngle;
+        return false;
     }
     private void OnTriggerEnter(Collider other)
     {

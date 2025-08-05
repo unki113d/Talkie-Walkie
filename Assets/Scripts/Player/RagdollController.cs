@@ -24,6 +24,22 @@ public class RagdollController : NetworkBehaviour
     private bool isRagdolled = false;
     private bool reverseQueued = false;
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        // если что-то не задано в инспекторе Ч найдЄм на этом же GameObject
+        mainBody = mainBody ?? GetComponent<Rigidbody>();
+        capsuleCollider = capsuleCollider ?? GetComponent<CapsuleCollider>();
+        animator = animator ?? GetComponent<Animator>();
+
+        // теперь собираем все костные тела/коллайдеры
+        boneBodies = GetComponentsInChildren<Rigidbody>()
+                            .Where(rb => rb != mainBody).ToList();
+        boneColliders = GetComponentsInChildren<Collider>()
+                            .Where(c => c != capsuleCollider).ToList();
+        DisableRagdollImmediate();
+    }
     void Awake()
     {
         // 1) собираем все риджидбоди-кости (кроме корн€)
@@ -171,5 +187,24 @@ public class RagdollController : NetworkBehaviour
         // отключаем физику костей
         foreach (var c in boneColliders)
             c.enabled = false;
+    }
+    private void DisableRagdollImmediate()
+    {
+        // ¬ключаем анимацию и коллайдер/физику корн€
+        animator.enabled = true;
+        capsuleCollider.enabled = true;
+        mainBody.isKinematic = false;
+
+        // ƒелаем все кости кинематическими и отключаем их коллайдеры
+        foreach (var b in boneBodies)
+        {
+            b.isKinematic = true;
+            b.detectCollisions = false;
+        }
+        foreach (var c in boneColliders)
+            c.enabled = false;
+
+        isRagdolled = false;
+        reverseQueued = false;
     }
 }

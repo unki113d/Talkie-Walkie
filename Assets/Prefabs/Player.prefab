@@ -2255,7 +2255,12 @@ MonoBehaviour:
   maxSlopeAngle: 60
   groundCheck: {fileID: 2744885902648417623}
   groundRadius: 0.1
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
   _footTrigger: {fileID: 815099086931686584}
+  _isGrounded: 0
+  _hasLeftGround: 0
 --- !u!114 &1168716883623415403
 MonoBehaviour:
   m_ObjectHideFlags: 0
