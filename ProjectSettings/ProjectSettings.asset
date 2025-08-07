@@ -826,7 +826,13 @@ PlayerSettings:
   XboxOneOverrideIdentityPublisher: 
   vrEditorSettings: {}
   cloudServicesEnabled:
+    Build: 0
+    Game Performance: 0
+    Legacy Analytics: 0
+    Purchasing: 0
+    UDP: 0
     UNet: 1
+    Unity Ads: 0
   luminIcon:
     m_Name: 
     m_ModelFolderPath: 
@@ -848,11 +854,11 @@ PlayerSettings:
   captureStartupLogs: {}
   activeInputHandler: 2
   windowsGamepadBackendHint: 0
-  cloudProjectId: ea0cb7f8-ce3f-451e-b2d4-3bae0f966cf8
+  cloudProjectId: 115c650f-3b84-4e67-be4d-815ecead1c56
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
   projectName: Talkie Walkie
-  organizationId: night-chat-team
+  organizationId: fliptask
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
