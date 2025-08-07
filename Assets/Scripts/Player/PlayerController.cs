@@ -113,9 +113,9 @@ public class PlayerController : NetworkBehaviour
 
         transform.rotation = Quaternion.Euler(0, _yRotation, 0);
 
-        Debug.Log($"Mouse X: {_inputManager.Look.x}, Mouse Y: {_inputManager.Look.y}");
-        Debug.Log($"X Rotation: {_xRotation}");
-        Debug.Log($"Camera.localRotation: {_camera.localRotation.eulerAngles}");
-        Debug.Log($"Player.rotation: {transform.rotation.eulerAngles}");
+        //Debug.Log($"Mouse X: {_inputManager.Look.x}, Mouse Y: {_inputManager.Look.y}");
+        //Debug.Log($"X Rotation: {_xRotation}");
+        //Debug.Log($"Camera.localRotation: {_camera.localRotation.eulerAngles}");
+        //Debug.Log($"Player.rotation: {transform.rotation.eulerAngles}");
     }
 }

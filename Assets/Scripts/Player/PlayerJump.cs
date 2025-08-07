@@ -89,12 +89,11 @@ public class PlayerJump : NetworkBehaviour
     private bool CheckGrounded()
     {
         // Позиция от которой начинаем сферокаст чуть выше ноги
-        Vector3 origin = groundCheck.position + Vector3.up * 0.05f;
         float maxDist = groundRadius + 0.1f;
-
+        Debug.Log(Physics.SphereCast(groundCheck.position, groundRadius, -transform.up, out RaycastHit hit1,groundLayer));
         // Бросаем сферокаст только по слоям groundLayer
         if (Physics.SphereCast(
-            origin,
+            groundCheck.position,
             groundRadius,
             Vector3.down,
             out RaycastHit hit,
@@ -117,7 +116,7 @@ public class PlayerJump : NetworkBehaviour
         _animator.SetTrigger(_landHash);
         _hasLeftGround = false;
     }
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         if (groundCheck == null) return;
         Gizmos.color = Color.cyan;
