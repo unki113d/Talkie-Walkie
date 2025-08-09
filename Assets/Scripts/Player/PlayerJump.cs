@@ -25,6 +25,9 @@ public class PlayerJump : NetworkBehaviour
     public bool _isGrounded;
     private bool _jumpRequested;
     public bool _hasLeftGround = false;
+    private bool _prevJumpInput;
+    private bool _wasGrounded;
+    bool cur;
 
     private int _jumpHash;
     private int _inAirHash;
@@ -48,6 +51,8 @@ public class PlayerJump : NetworkBehaviour
         _animator.SetBool(_inAirHash, false);
         _hasLeftGround = false;
         _jumpRequested = false;
+        _wasGrounded = _isGrounded;
+        _prevJumpInput = false;
     }
 
     void Start()
@@ -58,10 +63,11 @@ public class PlayerJump : NetworkBehaviour
 
     void Update()
     {
-        if (_inputManager.Jump && _isGrounded)
-        {
+        cur = _inputManager.Jump;
+        if (cur && !_prevJumpInput && _isGrounded)   // только при нажатии
             _jumpRequested = true;
-        }
+
+        _prevJumpInput = cur;
     }
 
     void FixedUpdate()
@@ -77,29 +83,30 @@ public class PlayerJump : NetworkBehaviour
             _jumpRequested = false;
         }
 
-        // InAir 
-        if (!_isGrounded && _rb.linearVelocity.y < 0f)
+        if (_wasGrounded && !_isGrounded)
         {
-
+            // уход с земли вниз — считаем, что реально оторвались
             _animator.SetBool(_inAirHash, true);
             _hasLeftGround = true;
         }
+
+        if (!_wasGrounded && _isGrounded && _hasLeftGround)
+        {
+            // приземление
+            _animator.SetTrigger(_landHash);
+            _animator.SetBool(_inAirHash, false);
+            _hasLeftGround = false;
+        }
+
+        // обновляем предыдущее состояние
+        _wasGrounded = _isGrounded;
     }
 
     private bool CheckGrounded()
     {
         // Позиция от которой начинаем сферокаст чуть выше ноги
         float maxDist = groundRadius + 0.1f;
-        Debug.Log(Physics.SphereCast(groundCheck.position, groundRadius, -transform.up, out RaycastHit hit1,groundLayer));
-        // Бросаем сферокаст только по слоям groundLayer
-        if (Physics.SphereCast(
-            groundCheck.position,
-            groundRadius,
-            Vector3.down,
-            out RaycastHit hit,
-            maxDist,
-            groundLayer,
-            QueryTriggerInteraction.Ignore))
+        if (Physics.SphereCast(groundCheck.position, groundRadius, Vector3.down, out RaycastHit hit, maxDist, groundLayer, QueryTriggerInteraction.Ignore))
         {
             // Проверяем угол наклона
             float angle = Vector3.Angle(hit.normal, Vector3.up);

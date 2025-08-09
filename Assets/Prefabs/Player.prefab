@@ -2251,7 +2251,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  jumpForce: 1.5
+  jumpForce: 7
   maxSlopeAngle: 60
   groundCheck: {fileID: 2744885902648417623}
   groundRadius: 0.1
@@ -2277,8 +2277,8 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  fallSpeedThreshold: -8
-  hitForceThreshold: 5
+  fallSpeedThreshold: -15
+  hitForceThreshold: 20
   reverseBlendTime: 0.5
   mainBody: {fileID: 5897287655339167734}
   capsuleCollider: {fileID: 5829716205576837467}
@@ -3246,7 +3246,7 @@ Transform:
   m_GameObject: {fileID: 7163292211225905132}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.057, z: 0}
+  m_LocalPosition: {x: 0, y: 0.102, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
