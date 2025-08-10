@@ -32,12 +32,14 @@ public class PlayerJump : NetworkBehaviour
     private int _jumpHash;
     private int _inAirHash;
     private int _landHash;
+    private int _leftGroundHash;
     void Awake()
     {
         // инициализируем хэши до любых вызовов SetBool/SetTrigger
         _jumpHash = Animator.StringToHash("JumpStart");
         _inAirHash = Animator.StringToHash("InAir");
         _landHash = Animator.StringToHash("Land");
+        _leftGroundHash = Animator.StringToHash("LeftGround");
     }
     public override void OnStartLocalPlayer()
     {
@@ -88,6 +90,7 @@ public class PlayerJump : NetworkBehaviour
             // уход с земли вниз Ч считаем, что реально оторвались
             _animator.SetBool(_inAirHash, true);
             _hasLeftGround = true;
+            _animator.SetBool(_leftGroundHash, true);
         }
 
         if (!_wasGrounded && _isGrounded && _hasLeftGround)
@@ -96,6 +99,7 @@ public class PlayerJump : NetworkBehaviour
             _animator.SetTrigger(_landHash);
             _animator.SetBool(_inAirHash, false);
             _hasLeftGround = false;
+            _animator.SetBool(_leftGroundHash, false);
         }
 
         // обновл€ем предыдущее состо€ние
@@ -122,6 +126,7 @@ public class PlayerJump : NetworkBehaviour
         _animator.SetBool(_inAirHash, false);
         _animator.SetTrigger(_landHash);
         _hasLeftGround = false;
+        _animator.SetBool(_leftGroundHash, false);
     }
     private void OnDrawGizmos()
     {
