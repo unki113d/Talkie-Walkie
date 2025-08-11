@@ -106,7 +106,7 @@ public class PlayerJump : NetworkBehaviour
         _wasGrounded = _isGrounded;
     }
 
-    private bool CheckGrounded()
+    public bool CheckGrounded()
     {
         // Позиция от которой начинаем сферокаст чуть выше ноги
         float maxDist = groundRadius + 0.1f;
