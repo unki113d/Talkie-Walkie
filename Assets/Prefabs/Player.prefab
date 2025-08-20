@@ -2063,6 +2063,7 @@ GameObject:
   - component: {fileID: 1991231896735333243}
   - component: {fileID: 4532020092102190974}
   - component: {fileID: 7913053960178824964}
+  - component: {fileID: 6855167858547560002}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -2279,10 +2280,14 @@ MonoBehaviour:
   syncInterval: 0
   fallSpeedThreshold: -15
   hitForceThreshold: 20
-  reverseBlendTime: 0.5
+  reverseBlendTime: 1
+  minFallHeight: 5
+  minAirTime: 3
+  sideHitImpulse: 20
   mainBody: {fileID: 5897287655339167734}
   capsuleCollider: {fileID: 5829716205576837467}
   animator: {fileID: 7990670000067064875}
+  jumpScript: {fileID: -8006871562954418214}
 --- !u!114 &5473448360857932953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2390,6 +2395,41 @@ MonoBehaviour:
   syncInterval: 0
   clientAuthority: 0
   animator: {fileID: 7990670000067064875}
+--- !u!114 &6855167858547560002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5634407301375195866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b20dc110904e47f8a154cdcf6433eae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncMethod: 0
+  syncDirection: 1
+  syncMode: 0
+  syncInterval: 0.05
+  target: {fileID: 5366495041465095971}
+  updateMethod: 0
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  bufferResetMultiplier: 3
+  positionSensitivity: 0.01
+  rotationSensitivity: 0.01
+  scaleSensitivity: 0.01
 --- !u!1 &5718220051373504369
 GameObject:
   m_ObjectHideFlags: 0

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 using Utils;
+using Unity.VisualScripting;
 
 public class PlayerJump : NetworkBehaviour
 {
@@ -123,6 +124,7 @@ public class PlayerJump : NetworkBehaviour
     {
 
         // тут самый момент приземления
+        if (_animator == null) return;
         _animator.SetBool(_inAirHash, false);
         _animator.SetTrigger(_landHash);
         _hasLeftGround = false;
