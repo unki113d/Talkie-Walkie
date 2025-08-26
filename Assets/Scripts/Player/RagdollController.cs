@@ -14,9 +14,19 @@ public class RagdollController : NetworkBehaviour
     [SerializeField] private float minFallHeight = 2f;
     [SerializeField] private float minAirTime = 0.6f;
     [SerializeField] private float sideHitImpulse = 8f;
+    [SerializeField] private float stepOffHeight = 0.6f; // порог дл€ "сошЄл с уступа"
+    private float maxFallHeight = 0f; // накопитель максимальной высоты падени€
 
     private float _fallStartY = float.NaN;
     private float _airTime = 0f;
+
+    [Header("Ragdoll settings")]
+    [SerializeField] private float minRagdollTime = 0.7f;   // минимум столько лежим
+    [SerializeField] private float stopCheckDelay = 0.15f;  // пауза перед проверкой "кости остановились"
+    [SerializeField] private float standUpMaxSlope = 50f; // градусы
+
+    private bool ragdollArmed = false;      // чтобы не дергать Cmd по 10 раз
+    private float ragdollSince = -1f;       // врем€ начала регдолла
 
     [Header("References")]
     [SerializeField] private Rigidbody mainBody;
@@ -88,17 +98,23 @@ public class RagdollController : NetworkBehaviour
 
         vy = mainBody.linearVelocity.y;
 
+        bool prevGrounded = grounded;
         grounded = jumpScript.CheckGrounded();
         // отслеживаем старт падени€ и Ђврем€ в воздухеї
         if (!grounded)
         {
-            if (float.IsNaN(_fallStartY)) _fallStartY = transform.position.y;
+            if (prevGrounded) { _fallStartY = transform.position.y; maxFallHeight = 0f; _airTime = 0f; }
             _airTime += Time.fixedDeltaTime;
+
+            // обновл€ем максимум потери высоты за этот полЄт
+            float h = _fallStartY - transform.position.y;
+            if (h > maxFallHeight) maxFallHeight = h;
         }
         else
         {
             _fallStartY = float.NaN;
             _airTime = 0f;
+            maxFallHeight = 0f;
         }
 
         // 1) больша€ вертикальна€ скорость + высота падени€
@@ -106,26 +122,37 @@ public class RagdollController : NetworkBehaviour
         {
             float fallDist = float.IsNaN(_fallStartY) ? 0f : (_fallStartY - transform.position.y);
             if (fallDist >= minFallHeight)
-                CmdEnableRagdoll();
+                if (!isRagdolled && !ragdollArmed) { ragdollArmed = true; CmdEnableRagdoll(); }
         }
 
         // 2) просто долго в воздухе (сошЄл с уступа)
-        if (!isRagdolled && _airTime >= minAirTime)
-            CmdEnableRagdoll();
+        if (!isRagdolled && !ragdollArmed)
+        {
+            bool highFall = (_airTime > 0.1f) && (vy < fallSpeedThreshold) && (maxFallHeight >= minFallHeight);
+            bool steppedOff = (_airTime >= minAirTime) && (maxFallHeight >= stepOffHeight);
+
+            if (highFall || steppedOff)
+            {
+                ragdollArmed = true;
+                CmdEnableRagdoll();
+            }
+        }
     }
 
     void OnCollisionEnter(Collision col)
     {
-        if (!isServer || isRagdolled) return;
+        if (!isServer || isRagdolled || ragdollArmed) return;
 
-        var impulse = col.impulse.magnitude / Time.fixedDeltaTime;
+        // горизонтальный импульс (снос вбок)
         Vector3 horizontalImpulse = Vector3.ProjectOnPlane(col.impulse, Vector3.up);
-        if (horizontalImpulse.magnitude / Time.fixedDeltaTime >= sideHitImpulse)
-            CmdEnableRagdoll();
+        float horizForce = horizontalImpulse.magnitude / Time.fixedDeltaTime;
 
-        // как и раньше: общий порог по относительной скорости
-        if (col.relativeVelocity.magnitude > hitForceThreshold)
+        bool strongHit = (horizForce >= sideHitImpulse) || (col.relativeVelocity.magnitude >= hitForceThreshold);
+        if (strongHit)
+        {
+            ragdollArmed = true;
             CmdEnableRagdoll();
+        }
     }
 
     void Update()
@@ -133,19 +160,22 @@ public class RagdollController : NetworkBehaviour
         if (!isLocalPlayer || !NetworkClient.active) return;
 
         // 3) тестовые клавиши
-        if (!isRagdolled && Input.GetKeyDown(KeyCode.K))
+        if (!isRagdolled && !ragdollArmed && Input.GetKeyDown(KeyCode.K))
             CmdEnableRagdoll();
         if (isRagdolled && Input.GetKeyDown(KeyCode.L))
             CmdReverseRagdoll();
 
         // 4) автоматический запуск обратного по остановке костей
-        if (isRagdolled && !reverseQueued)
+        if (isRagdolled && !reverseQueued && Time.time - ragdollSince >= minRagdollTime)
         {
-            bool moving = boneBodies.Any(b => b.linearVelocity.sqrMagnitude > 0.01f);
-            if (!moving)
+            if (!GroundTooSteep(out _))
             {
-                reverseQueued = true;
-                CmdReverseRagdoll();
+                bool moving = boneBodies.Any(b => b.linearVelocity.sqrMagnitude > 0.01f);
+                if (!moving)
+                {
+                    reverseQueued = true;
+                    CmdReverseRagdoll();
+                }
             }
         }
     }
@@ -161,7 +191,9 @@ public class RagdollController : NetworkBehaviour
     {
         if (isRagdolled) return;
         isRagdolled = true;
+        ragdollArmed = false;
         reverseQueued = false;
+        ragdollSince = Time.time;
 
         // выключаем анимацию и коллайдер+физику корн€
         animator.enabled = false;
@@ -192,6 +224,7 @@ public class RagdollController : NetworkBehaviour
 
     private IEnumerator ReverseRoutine()
     {
+        if (GroundTooSteep(out _)) { isRagdolled = true; reverseQueued = false; yield break; }
         // 1) снимаем стартовые локальные повороты (как у теб€)
         var startRots = boneBodies.Select(b => b.transform.localRotation).ToArray();
 
@@ -213,17 +246,20 @@ public class RagdollController : NetworkBehaviour
             yield return null;
         }
 
-        // 4) ставим root туда, где реально лежит ragdoll (по бЄдрам)
+        // a) раскладываем корень в нужную позицию/поворот
         SnapRootToHips();
 
-        // 5) переносим среднюю скорость костей в корневое тело
-        mainBody.linearVelocity = GetRagdollAverageVelocity();
-
-        // 6) включаем аниматор и играем get-up без RootMotion
-        animator.applyRootMotion = false;
-        animator.enabled = true;
+        // b) включаем коллайдер и делаем RB динамическим
         capsuleCollider.enabled = true;
         mainBody.isKinematic = false;
+
+        // c) на следующее FixedUpdate кладЄм импульс (иначе попадЄм в кадр, когда RB ещЄ kinematic)
+        var avgV = GetRagdollAverageVelocity();
+        StartCoroutine(ApplyImpulseNextFixed(mainBody, avgV));
+
+        // d) включаем аниматор
+        animator.applyRootMotion = false; // или true, если ты хочешь т€нуть rootMotion
+        animator.enabled = true;
 
         // выбрать анимацию подъЄма по Ђлицом вниз/вверхї
         bool faceDown = Vector3.Dot(hips.forward, Vector3.up) < 0f; // груба€ эвристика
@@ -237,6 +273,15 @@ public class RagdollController : NetworkBehaviour
 
         // (опц.) через пару кадров вернуть applyRootMotion, если он тебе нужен
         yield return null;
+    }
+    private IEnumerator ApplyImpulseNextFixed(Rigidbody rb, Vector3 avgV)
+    {
+        yield return new WaitForFixedUpdate();
+        // м€гкий старт: ограничим горизонтальную скорость, вертикаль оставим (чтобы не Ђвлетатьї в склон)
+        Vector3 horiz = Vector3.ProjectOnPlane(avgV, Vector3.up);
+        Vector3 vel = Vector3.ClampMagnitude(horiz, 3.5f) + Vector3.up * Mathf.Max(0f, avgV.y);
+        // вместо пр€мой установки можно импульс Ч ещЄ плавнее:
+        rb.linearVelocity = vel; // или rb.AddForce(vel * rb.mass, ForceMode.Impulse);
     }
     private void DisableRagdollImmediate()
     {
@@ -278,5 +323,15 @@ public class RagdollController : NetworkBehaviour
         for (int i = 0; i < boneBodies.Count; i++)
             v += boneBodies[i].linearVelocity;
         return v / boneBodies.Count;
+    }
+    private bool GroundTooSteep(out RaycastHit hit)
+    {
+        Vector3 origin = hips.position + Vector3.up * 0.1f;
+        if (Physics.Raycast(origin, Vector3.down, out hit, 1.0f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            float angle = Vector3.Angle(hit.normal, Vector3.up);
+            return angle > standUpMaxSlope;
+        }
+        return true; // если не нашли пол Ч считаем круто/опасно
     }
 }
