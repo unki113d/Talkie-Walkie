@@ -22,15 +22,16 @@ public class RagdollController : NetworkBehaviour
 
     [Header("Ragdoll settings")]
     [SerializeField] private float minRagdollTime = 0.7f;   // минимум столько лежим
-    [SerializeField] private float stopCheckDelay = 0.15f;  // пауза перед проверкой "кости остановились"
+    //[SerializeField] private float stopCheckDelay = 0.15f;  // пауза перед проверкой "кости остановились"
     [SerializeField] private float standUpMaxSlope = 50f; // градусы
+    [SerializeField] private float standUpStickTime = 0.35f;
 
     private bool ragdollArmed = false;      // чтобы не дергать Cmd по 10 раз
     private float ragdollSince = -1f;       // врем€ начала регдолла
 
     [Header("References")]
     [SerializeField] private Rigidbody mainBody;
-    [SerializeField] private Collider capsuleCollider;
+    [SerializeField] private CapsuleCollider capsuleCollider;
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerJump jumpScript;
 
@@ -40,6 +41,7 @@ public class RagdollController : NetworkBehaviour
     private List<Collider> boneColliders;
 
     private bool isRagdolled = false;
+    public bool IsRagdolled => isRagdolled;
     private bool reverseQueued = false;
     bool grounded;
     float vy;
@@ -141,18 +143,37 @@ public class RagdollController : NetworkBehaviour
 
     void OnCollisionEnter(Collision col)
     {
-        if (!isServer || isRagdolled || ragdollArmed) return;
+        if (!isServer || isRagdolled) return;
 
-        // горизонтальный импульс (снос вбок)
-        Vector3 horizontalImpulse = Vector3.ProjectOnPlane(col.impulse, Vector3.up);
-        float horizForce = horizontalImpulse.magnitude / Time.fixedDeltaTime;
+        // игнорируем свои вспомогательные триггеры, если такие есть
+        if (col.collider.isTrigger) return;
 
-        bool strongHit = (horizForce >= sideHitImpulse) || (col.relativeVelocity.magnitude >= hitForceThreshold);
-        if (strongHit)
+        // берЄм первый контакт
+        var contact = col.GetContact(0);
+        Vector3 n = contact.normal;                   // нормаль поверхности
+        float upDot = Vector3.Dot(n, Vector3.up);     // +1 Ч пол, 0 Ч стена, -1 Ч потолок
+
+        // 1) игнор пола/потолка Ч это не Ђсбилиї
+        if (upDot > 0.5f || upDot < -0.5f)
+            return;
+
+        // 2) скорость влетани€ ¬ƒќЋ№ нормали (а не модуль)
+        // отрицательна€ Ч уезжаем от стены, положительна€ Ч влетаем
+        float vAlongNormal = Vector3.Dot(col.relativeVelocity, -n);
+
+        // 3) триггерим только если реально влетели достаточно быстро
+        const float sideHitSpeed = 6f; // подбери
+        if (vAlongNormal >= sideHitSpeed)
         {
-            ragdollArmed = true;
             CmdEnableRagdoll();
+            return;
         }
+
+        // (опционально) очень редкий кейс Ч мощный наклонный удар
+        // оставь как дополнительную страховку, но подними порог
+        float hardHit = 12f; // выше прежнего hitForceThreshold
+        if (col.relativeVelocity.magnitude >= hardHit)
+            CmdEnableRagdoll();
     }
 
     void Update()
@@ -250,6 +271,7 @@ public class RagdollController : NetworkBehaviour
         SnapRootToHips();
 
         // b) включаем коллайдер и делаем RB динамическим
+        transform.position += Vector3.up * 0.03f;
         capsuleCollider.enabled = true;
         mainBody.isKinematic = false;
 
@@ -258,12 +280,14 @@ public class RagdollController : NetworkBehaviour
         StartCoroutine(ApplyImpulseNextFixed(mainBody, avgV));
 
         // d) включаем аниматор
+        StartCoroutine(StickToGround(standUpStickTime));
         animator.applyRootMotion = false; // или true, если ты хочешь т€нуть rootMotion
         animator.enabled = true;
 
         // выбрать анимацию подъЄма по Ђлицом вниз/вверхї
-        bool faceDown = Vector3.Dot(hips.forward, Vector3.up) < 0f; // груба€ эвристика
-        animator.CrossFade(faceDown ? "GetUp_Front" : "GetUp_Back", 0.05f);
+        bool faceDown = Vector3.Dot(hips.forward, Vector3.up) < 0f;
+        string state = faceDown ? "GetUp_Front" : "GetUp_Back";
+        animator.CrossFadeInFixedTime(state, 0.1f, 0, 0.05f);
 
         isRagdolled = false;
         reverseQueued = false;
@@ -282,6 +306,21 @@ public class RagdollController : NetworkBehaviour
         Vector3 vel = Vector3.ClampMagnitude(horiz, 3.5f) + Vector3.up * Mathf.Max(0f, avgV.y);
         // вместо пр€мой установки можно импульс Ч ещЄ плавнее:
         rb.linearVelocity = vel; // или rb.AddForce(vel * rb.mass, ForceMode.Impulse);
+    }
+    private IEnumerator StickToGround(float seconds)
+    {
+        float end = Time.time + seconds;
+        while (Time.time < end)
+        {
+            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out var hit, 2f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                // выравниваем только по Y, чтобы не ломать горизонтальную позицию
+                Vector3 p = transform.position;
+                p.y = hit.point.y + ((capsuleCollider.height * 0.5f) - capsuleCollider.radius);
+                transform.position = p;
+            }
+            yield return new WaitForFixedUpdate();
+        }
     }
     private void DisableRagdollImmediate()
     {

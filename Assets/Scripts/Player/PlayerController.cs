@@ -18,6 +18,7 @@ public class PlayerController : NetworkBehaviour
     private Rigidbody _rb;
     private InputManager _inputManager;
     private Animator _animator;
+    private RagdollController _ragdoll;
     private bool _hasAnimator;
 
     private int _velocityXHash;
@@ -88,6 +89,7 @@ public class PlayerController : NetworkBehaviour
 
         // 3. ѕреобразуем обратно в мировой базис и пушим
         Vector3 worldDelta = transform.TransformDirection(localDelta);
+        if (_ragdoll != null && _ragdoll.IsRagdolled) return;
         _rb.AddForce(worldDelta, ForceMode.VelocityChange);
 
         _animator.SetFloat(_velocityXHash, _currentVelocity.x);
@@ -111,7 +113,8 @@ public class PlayerController : NetworkBehaviour
         
         _yRotation += Mouse_X * _mouseSensitivity * Time.deltaTime;
 
-        transform.rotation = Quaternion.Euler(0, _yRotation, 0);
+        if (_ragdoll == null || !_ragdoll.IsRagdolled)
+            transform.rotation = Quaternion.Euler(0, _yRotation, 0);
 
         //Debug.Log($"Mouse X: {_inputManager.Look.x}, Mouse Y: {_inputManager.Look.y}");
         //Debug.Log($"X Rotation: {_xRotation}");

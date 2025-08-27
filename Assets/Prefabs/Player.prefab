@@ -2278,12 +2278,16 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  fallSpeedThreshold: -15
-  hitForceThreshold: 20
-  reverseBlendTime: 1
+  fallSpeedThreshold: -10
+  hitForceThreshold: 30
+  reverseBlendTime: 2
   minFallHeight: 5
   minAirTime: 3
-  sideHitImpulse: 20
+  sideHitImpulse: 30
+  stepOffHeight: 0.6
+  minRagdollTime: 0.7
+  standUpMaxSlope: 50
+  standUpStickTime: 0.35
   mainBody: {fileID: 5897287655339167734}
   capsuleCollider: {fileID: 5829716205576837467}
   animator: {fileID: 7990670000067064875}
